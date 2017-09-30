@@ -7,9 +7,12 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Place
  *
- * @ORM\Table(name="places")
+ * @ORM\Table(name="places",
+ *     uniqueConstraints={@ORM\UniqueConstraint(name="places_name_unique",columns={"name"})}
+ * )
  * @ORM\Entity(repositoryClass="AppBundle\Repository\PlaceRepository")
  */
+
 class Place
 {
     /**

@@ -4,18 +4,22 @@ namespace AppBundle\Controller;
 
 use AppBundle\AppBundle;
 use AppBundle\Entity\Place;
+use AppBundle\Form\Type\PlaceType;
+use FOS\RestBundle\View\View; // Utilisation de la vue de FOSRestBundle
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use FOS\RestBundle\Controller\Annotations\Get;
+use FOS\RestBundle\Controller\Annotations as Rest; // alias pour toutes les annotations
 
 class PlaceController extends Controller
 {
     /**
-     * @Route("/places", name="places_list")
-     * @Method({"GET"})
+     * @Rest\View()
+     * @Rest\Get("/places")
      */
     public function getPlacesAction(Request $request)
     {
@@ -26,40 +30,46 @@ class PlaceController extends Controller
             ->getRepository('AppBundle:Place')
             ->findAll();
 
-        $formatted = [];
-
-        foreach ($places as $place) {
-            $formatted[] = [
-                'id' => $place->getId(),
-                'name' => $place->getName(),
-                'address' => $place->getAddress()
-            ];
-        }
-
-        return new JsonResponse($formatted);
+        return $places;
     }
 
-        /**
-         * @Route("/places/{place_id}",requirements={"place_id" = "\d+"}, name="places_one")
-         * @Method({"GET"})
-         */
-        public function getPlaceAction(Request $request)
-        {
-            $place = $this->getDoctrine()->getManager()
-                ->getRepository('AppBundle:Place')
-                ->find($request->get('place_id'));
-            /* @var $place Place */
+    /**
+     * @Rest\View()
+     * @Rest\Get("/places/{id}")
+     */
+    public function getPlaceAction(Request $request)
+    {
+        $place = $this->getDoctrine()->getManager()
+            ->getRepository('AppBundle:Place')
+            ->find($request->get('id'));
+        /* @var $place Place */
 
-            if (empty($place)) {
-                return new JsonResponse(['message' => 'Place not found'], Response::HTTP_NOT_FOUND);
-            }
-
-            $formatted = [
-                'id' => $place->getId(),
-                'name' => $place->getName(),
-                'address' => $place->getAddress(),
-            ];
-
-            return new JsonResponse($formatted);
+        if (empty($place)) {
+            return new JsonResponse(['message' => 'Place not found'], Response::HTTP_NOT_FOUND);
         }
+
+        return $place;
+    }
+
+    /**
+     * @Rest\View(statusCode=Response::HTTP_CREATED)
+     * @Rest\Post("/places")
+     */
+    public function postPlacesAction(Request $request)
+    {
+        $place = new Place();
+        $form = $this->createForm(PlaceType::class, $place);
+
+        $form->submit($request->request->all());
+
+
+        if ($form->isValid()) {
+            $em = $this->get('doctrine.orm.entity_manager');
+            $em->persist($place);
+            $em->flush();
+            return $place;
+        } else {
+            return $form;
+        }
+    }
 }
